@@ -1,13 +1,14 @@
-var gulp	 		  = require('gulp'),
-		path			  = require('path'),
-		jspm 				= require('jspm'),
-		rename		  = require('gulp-rename'),
-		template	  = require('gulp-template'),
-		uglify	 		= require('gulp-uglify'),
-		htmlreplace = require('gulp-html-replace'),
-		ngAnnotate  = require('gulp-ng-annotate'),
-		serve			  = require('browser-sync'),
-		yargs			  = require('yargs').argv
+var gulp        = require('gulp'),
+    path        = require('path'),
+    jspm        = require('jspm'),
+    rename      = require('gulp-rename'),
+    template    = require('gulp-template'),
+    uglify      = require('gulp-uglify'),
+    htmlreplace = require('gulp-html-replace'),
+    ngAnnotate  = require('gulp-ng-annotate'),
+    serve       = require('browser-sync'),
+    yargs       = require('yargs').argv,
+    rimraf      = require('rimraf')
 
 var root = 'client';
 
@@ -15,7 +16,7 @@ var root = 'client';
 var resolveTo = function(resolvePath) {
 	return function(glob) {
 		glob = glob || '';
-		return path.join(root, resolvePath, glob);
+		return path.resolve(path.join(root, resolvePath, glob));
 	}
 };
 
@@ -24,7 +25,6 @@ var resolveToComponents = resolveTo('app/components'); // app/components/{glob}
 
 // map of all our paths
 var paths = {
-	js: resolveToApp('**/*.js'),
 	css: resolveToApp('**/*.css'),
 	html: [
 		resolveToApp('**/*.html'),
@@ -35,11 +35,12 @@ var paths = {
 };
 
 gulp.task('serve', function(){
+	'use strict'
+	require('chokidar-socket-emitter')({port: 8081, path: 'client', relativeTo: 'client'})
 	serve({
 		port: process.env.PORT || 3000,
 		open: false,
 		files: [].concat(
-			[paths.js],
 			[paths.css],
 			paths.html
 		),
@@ -56,6 +57,7 @@ gulp.task('serve', function(){
 
 gulp.task('build', function() {
 	var dist = path.join(paths.dist + 'app.js');
+	rimraf.sync(path.join(paths.dist, '*'));
 	// Use JSPM to bundle our app
 	return jspm.bundleSFX(resolveToApp('app'), dist, {})
 		.then(function() {
@@ -80,11 +82,11 @@ gulp.task('component', function(){
 	var cap = function(val){
 		return val.charAt(0).toUpperCase() + val.slice(1);
 	};
-	
+
 	var name = yargs.name;
 	var parentPath = yargs.parent || '';
 	var destPath = path.join(resolveToComponents(), parentPath, name);
-	
+
 	return gulp.src(paths.blankTemplates)
 		.pipe(template({
 			name: name,
